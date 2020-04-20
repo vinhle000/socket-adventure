@@ -80,8 +80,16 @@ class Server(object):
         """
 
         # TODO: YOUR CODE HERE
+        if room_number == 0:
+            description = "This room has an azure crystal floor."
+        elif room_number == 1:
+            description = "This room has clouds painted on the ceiling."
+        elif room_number == 2:
+            description = "This room is blue!"
+        else:
+            description = "This is room 3!"
+        return description
 
-        pass
 
     def greet(self):
         """
@@ -101,7 +109,9 @@ class Server(object):
         """
         Retrieve input from the client_connection. All messages from the client
         should end in a newline character: '\n'.
-        
+
+        It should put the message from the client on the'self.input_buffer'
+
         This is a BLOCKING call. It should not return until there is some input from
         the client to receive.
          
@@ -110,7 +120,15 @@ class Server(object):
 
         # TODO: YOUR CODE HERE
 
-        pass
+        received = b''
+        while b'\n' not in received:
+            received += self.client_connection.recv(16)
+
+            if len(received) > 2048:
+                self.done = True
+                break
+
+        self.input_buffer = received.decode().strip()
 
     def move(self, argument):
         """
@@ -134,8 +152,17 @@ class Server(object):
         """
 
         # TODO: YOUR CODE HERE
+        room_map = {
+                    "north": 3,
+                    "south": 0,
+                    "east": 2,
+                    "west": 1
+                    }
 
-        pass
+        room_number = room_map[argument]
+        self.room = room_number
+
+        self.output_buffer = self.room_description(room_map[argument])
 
     def say(self, argument):
         """
@@ -152,8 +179,7 @@ class Server(object):
         """
 
         # TODO: YOUR CODE HERE
-
-        pass
+        self.output_buffer = 'You say, "{}"'.format(argument)
 
     def quit(self, argument):
         """
@@ -168,8 +194,8 @@ class Server(object):
         """
 
         # TODO: YOUR CODE HERE
-
-        pass
+        self.done = True
+        self.output_buffer = "Goodbye!"
 
     def route(self):
         """
@@ -184,8 +210,23 @@ class Server(object):
         """
 
         # TODO: YOUR CODE HERE
+        # if input_buffer were "say hello there"
+        command = self.input_buffer.split(" ")[0]               # then command is "say"
+        argument = " ".join(self.input_buffer.split(" ")[1:])   # agruments is "hello there"
 
-        pass
+        if command is "say":
+            self.say(argument)
+        elif command is "move":
+            self.move(argument)
+        elif command is "quit":
+            self.quit()
+
+        # Using Dictionary
+        # {
+        #     "move": self.move,
+        #     "say": self.say,
+        #     "quit": self.quit,
+        # }[command](argument)
 
     def push_output(self):
         """
@@ -198,8 +239,12 @@ class Server(object):
         """
 
         # TODO: YOUR CODE HERE
-
-        pass
+        # self.output_buffer : string
+        # self.client_connection : Socket
+        # to_send = self.output_buffer.encode()  # The output_buffer is a string, but we
+        #                                         # can only send Bytes over the connection
+        data = "ok!" + self.output_buffer + "\n"
+        self.client_connection.sendall(data.encode())
 
     def serve(self):
         self.connect()
